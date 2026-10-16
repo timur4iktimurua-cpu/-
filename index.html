@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Літаюча Свинка: Космічна Пригода з Другом</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: sans-serif; }
+        body { background: #111827; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; max-width: 480px; height: 100vh; max-height: 800px; background: #000; overflow: hidden; border-radius: 12px; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .ui-panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.95); z-index: 10; padding: 20px; text-align: center; }
+        .hidden { display: none !important; }
+        h1 { font-size: 26px; color: #f59e0b; margin-bottom: 10px; }
+        h2 { font-size: 20px; color: #38bdf8; margin-bottom: 15px; }
+        .currency-bar { display: flex; gap: 15px; background: rgba(255, 255, 255, 0.1); padding: 8px 16px; border-radius: 20px; margin-bottom: 15px; font-weight: bold; }
+        .btn { background: #f59e0b; color: #fff; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 20px; cursor: pointer; margin: 6px 0; width: 85%; max-width: 280px; }
+        .btn-space { background: #8b5cf6; }
+        .btn-secondary { background: #4b5563; }
+        input[type="text"] { width: 85%; padding: 10px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; color: #fff; text-align: center; font-size: 16px; margin-bottom: 10px; }
+        .hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; font-weight: bold; }
+        .hud-item { background: rgba(0, 0, 0, 0.6); padding: 6px 12px; border-radius: 12px; }
+        .shop-items { width: 100%; max-height: 280px; overflow-y: auto; margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+        .shop-item { background: rgba(255,255,255,0.08); padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .touch-controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; z-index: 5; }
+        .touch-btn { width: 65px; height: 65px; border-radius: 50%; background: rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud" class="hud hidden">
+        <div class="hud-item" id="score-display">Рівень: 1</div>
+        <div class="hud-item" id="currency-display">🌰 0 | 💎 0</div>
+    </div>
+    <div id="nickname-panel" class="ui-panel">
+        <h1>Вітаємо в грі!</h1>
+        <p style="margin-bottom: 10px;">Створіть свій унікальний нікнейм:</p>
+        <input type="text" id="user-nickname-input" placeholder="Введіть ваш нікнейм" maxlength="12">
+        <button class="btn" onclick="registerNickname()">Зберегти нікнейм</button>
+        <p id="nick-error" style="color: #ef4444; font-size: 13px; margin-top: 8px;"></p>
+    </div>
+    <div id="main-menu" class="ui-panel hidden">
+        <h1>Літаюча Свинка</h1>
+        <div id="current-user-tag" style="color: #38bdf8; margin-bottom: 5px;">Гравець: -</div>
+        <div class="currency-bar">
+            <span>🌰 <span id="menu-acorns">0</span></span>
+            <span>💎 <span id="menu-crystals">0</span></span>
+        </div>
+        <button class="btn" onclick="startSinglePlayer()">Грати соло (Земля)</button>
+        <button class="btn btn-space" onclick="openSpaceSetup()">Грати з другом (Космос)</button>
+        <button class="btn btn-secondary" onclick="openShop()">Магазин 🛒</button>
+    </div>
+    <div id="space-setup-panel" class="ui-panel hidden">
+        <h2>Політ у Космос 🚀</h2>
+        <div id="space-lock-msg" class="hidden" style="color: #f87171; margin-bottom: 8px; font-size: 13px;">Потрібно придбати космічний квиток у магазині за 200 🌰!</div>
+        <p style="margin-bottom: 8px; font-size: 14px;">Введіть нікнейм друга:</p>
+        <input type="text" id="friend-nickname-input" placeholder="Нікнейм друга" maxlength="12">
+        <button class="btn btn-space" id="start-space-btn" onclick="startSpacePlayer()">Старт у Космос!</button>
+        <button class="btn btn-secondary" onclick="showPanel('main-menu')">Назад</button>
+    </div>
+    <div id="shop-panel" class="ui-panel hidden">
+        <h2>Магазин 🛒</h2>
+        <div class="currency-bar">
+            <span>🌰 <span id="shop-acorns">0</span></span>
+            <span>💎 <span id="shop-crystals">0</span></span>
+        </div>
+        <div class="shop-items">
+            <div class="shop-item">
+                <div style="text-align:left;"><b>Космічний Квиток 🚀</b><br><small style="color:#aaa;">Доступ до космосу з другом</small></div>
+                <button class="btn" style="width:auto; padding:6px 10px;" id="buy-space-ticket-btn" onclick="buySpaceTicket()">200 🌰</button>
+            </div>
+            <div class="shop-item">
+                <div style="text-align:left;"><b>Магія Левітації 🪂</b><br><small style="color:#aaa;">Повільне падіння (5 хв)</small></div>
+                <button class="btn" style="width:auto; padding:6px 10px;" onclick="buySlowEffect()">50 🌰</button>
+            </div>
+            <div class="shop-item">
+                <div style="text-align:left;"><b>Кристали x2 💎</b><br><small style="color:#aaa;">Подвоєння кристалів</small></div>
+                <button class="btn btn-space" style="width:auto; padding:6px 10px;" onclick="buyCrystalMultiplier()">50 💎</button>
+            </div>
+        </div>
+        <button class="btn btn-secondary" onclick="showPanel('main-menu')">Назад</button>
+    </div>
+    <div id="game-over-panel" class="ui-panel hidden">
+        <h1 style="color: #ef4444;">Гра Закінчена!</h1>
+        <p id="game-over-reason" style="margin-bottom: 10px; color: #cbd5e1;"></p>
+        <div class="currency-bar">Зібрано: <span id="earned-curr">0</span></div>
+        <button class="btn" onclick="restartGame()">Спробувати знову</button>
+        <button class="btn btn-secondary" onclick="skipLevel()">Пропустити рівень (30 🌰)</button>
+        <button class="btn btn-secondary" onclick="showPanel('main-menu')">В меню</button>
+    </div>
+    <div id="touch-controls" class="touch-controls hidden">
+        <div class="touch-btn" id="p1-touch">P1</div>
+        <div class="touch-btn" id="p2-touch">P2</div>
+    </div>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    const container = document.getElementById('game-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getRegisteredNicknames() {
+    return JSON.parse(localStorage.getItem('registered_pigs_nicks') || '[]');
+}
+function saveNickname(nick) {
+    const nicks = getRegisteredNicknames();
+    if (!nicks.includes(nick)) {
+        nicks.push(nick);
+        localStorage.setItem('registered_pigs_nicks', JSON.stringify(nicks));
+    }
+}
+
+let playerState = {
+    nickname: localStorage.getItem('pig_user_nick') || '',
+    acorns: parseInt(localStorage.getItem('pig_acorns') || '0'),
+    crystals: parseInt(localStorage.getItem('pig_crystals') || '0'),
+    hasSpaceTicket: localStorage.getItem('pig_space_ticket') === 'true',
+    slowUntil: parseInt(localStorage.getItem('pig_slow_until') || '0'),
+    crystalMultiplier: parseInt(localStorage.getItem('pig_crystal_mult') || '1')
+};
+
+function saveState() {
+    localStorage.setItem('pig_user_nick', playerState.nickname);
+    localStorage.setItem('pig_acorns', playerState.acorns);
+    localStorage.setItem('pig_crystals', playerState.crystals);
+    localStorage.setItem('pig_space_ticket', playerState.hasSpaceTicket);
+    localStorage.setItem('pig_slow_until', playerState.slowUntil);
+    localStorage.setItem('pig_crystal_mult', playerState.crystalMultiplier);
+}
+
+function showPanel(id) {
+    document.querySelectorAll('.ui-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('touch-controls').classList.add('hidden');
+    if (id) document.getElementById(id).classList.remove('hidden');
+    updateMenuUI();
+}
+
+function updateMenuUI() {
+    document.getElementById('menu-acorns').innerText = playerState.acorns;
+    document.getElementById('menu-crystals').innerText = playerState.crystals;
+    document.getElementById('shop-acorns').innerText = playerState.acorns;
+    document.getElementById('shop-crystals').innerText = playerState.crystals;
+    document.getElementById('current-user-tag').innerText = "Гравець: " + (playerState.nickname || 'Гість');
+    
+    const spaceBtn = document.getElementById('buy-space-ticket-btn');
+    if (playerState.hasSpaceTicket) {
+        spaceBtn.innerText = "Куплено ✓";
+        spaceBtn.disabled = true;
+    }
+}
+
+function registerNickname() {
+    const input = document.getElementById('user-nickname-input').value.trim();
+    const errorEl = document.getElementById('nick-error');
+    if (input.length < 3) {
+        errorEl.innerText = "Нікнейм не менше 3 символів!";
+        return;
+    }
+    const existingNicks = getRegisteredNicknames();
+    if (existingNicks.includes(input.toLowerCase())) {
+        errorEl.innerText = "Нікнейм вже зайнятий!";
+        return;
+    }
+    saveNickname(input.toLowerCase());
+    playerState.nickname = input;
+    saveState();
+    showPanel('main-menu');
+}
+
+if (!playerState.nickname) {
+    showPanel('nickname-panel');
+} else {
+    showPanel('main-menu');
+}
+
+function openSpaceSetup() {
+    const lockMsg = document.getElementById('space-lock-msg');
+    const startBtn = document.getElementById('start-space-btn');
+    if (!playerState.hasSpaceTicket) {
+        lockMsg.classList.remove('hidden');
+        startBtn.disabled = true;
+    } else {
+        lockMsg.classList.add('hidden');
+        startBtn.disabled = false;
+    }
+    showPanel('space-setup-panel');
+}
+  function openShop() { showPanel('shop-panel'); }
+
+function buySpaceTicket() {
+    if (playerState.acorns >= 200 && !playerState.hasSpaceTicket) {
+        playerState.acorns -= 200;
+        playerState.hasSpaceTicket = true;
+        saveState();
+        updateMenuUI();
+        alert("Космічний квиток куплено!");
+    } else if (playerState.acorns < 200) {
+        alert("Потрібно 200 🌰!");
+    }
+}
+
+function buySlowEffect() {
+    if (playerState.acorns >= 50) {
+        playerState.acorns -= 50;
+        playerState.slowUntil = Date.now() + 5 * 60 * 1000;
+        saveState();
+        updateMenuUI();
+        alert("Левітацію активовано!");
+    } else { alert("Потрібно 50 🌰!"); }
+}
+
+function buyCrystalMultiplier() {
+    if (playerState.crystals >= 50) {
+        playerState.crystals -= 50;
+        playerState.crystalMultiplier *= 2;
+        saveState();
+        updateMenuUI();
+        alert("Подвоєння кристалів куплено!");
+    } else { alert("Потрібно 50 💎!"); }
+}
+
+let gameMode = 'single';
+let gameRunning = false;
+let friendNick = '';
+let score = 0;
+let level = 1;
+let collectedThisGame = 0;
+
+let p1 = { x: 80, y: 300, vy: 0, size: 22, color: '#f472b6' };
+let p2 = { x: 160, y: 300, vy: 0, size: 22, color: '#38bdf8' };
+let obstacles = [];
+let collectibles = [];
+let frameCount = 0;
+
+function startSinglePlayer() { gameMode = 'single'; initGame(); }
+function startSpacePlayer() {
+    friendNick = document.getElementById('friend-nickname-input').value.trim();
+    if (!friendNick) { alert("Введіть нік друга!"); return; }
+    gameMode = 'space';
+    initGame();
+}
+
+function initGame() {
+    gameRunning = true;
+    score = 0;
+    level = 1;
+    collectedThisGame = 0;
+    obstacles = [];
+    collectibles = [];
+    frameCount = 0;
+    p1.y = canvas.height / 2; p1.vy = 0;
+    if (gameMode === 'space') {
+        p2.y = canvas.height / 2; p2.vy = 0;
+        document.getElementById('touch-controls').classList.remove('hidden');
+    }
+    showPanel(null);
+    document.getElementById('hud').classList.remove('hidden');
+    requestAnimationFrame(gameLoop);
+}
+window.addEventListener('keydown', (e) => {
+    if (!gameRunning) return;
+    const flap = (Date.now() < playerState.slowUntil) ? -4.5 : -6.5;
+    if (e.code === 'KeyW' || e.code === 'Space') p1.vy = flap;
+    if (gameMode === 'space' && e.code === 'ArrowUp') p2.vy = flap;
+});
+
+document.getElementById('p1-touch').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameRunning) p1.vy = (Date.now() < playerState.slowUntil) ? -4.5 : -6.5;
+});
+document.getElementById('p2-touch').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameRunning && gameMode === 'space') p2.vy = (Date.now() < playerState.slowUntil) ? -4.5 : -6.5;
+});
+canvas.addEventListener('touchstart', () => {
+    if (gameRunning && gameMode === 'single') p1.vy = (Date.now() < playerState.slowUntil) ? -4.5 : -6.5;
+});
+
+function gameLoop() {
+    if (!gameRunning) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frameCount++;
+
+    const gravity = (Date.now() < playerState.slowUntil) ? 0.15 : 0.3;
+    p1.vy += gravity; p1.y += p1.vy;
+    if (gameMode === 'space') { p2.vy += gravity; p2.y += p2.vy; }
+
+    if (p1.y < 0 || p1.y > canvas.height) return gameOver("Гравець 1 вилетів!");
+    if (gameMode === 'space' && (p2.y < 0 || p2.y > canvas.height)) return gameOver("Гравець 2 вилетів!");
+
+    if (frameCount % 120 === 0) {
+        if (gameMode === 'single') {
+            let gap = 140;
+            let topH = Math.random() * (canvas.height - gap - 100) + 30;
+            obstacles.push({ x: canvas.width, top: topH, bottom: canvas.height - topH - gap, width: 50, passed: false });
+            collectibles.push({ x: canvas.width + 15, y: topH + gap / 2, size: 12, collected: false });
+        } else {
+            let gap = 160;
+            let leftW = Math.random() * (canvas.width - gap - 60) + 20;
+            obstacles.push({ y: -50, left: leftW, right: canvas.width - leftW - gap, height: 40, passed: false });
+            collectibles.push({ x: leftW + gap / 2, y: -50, size: 14, collected: false });
+        }
+    }
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        if (gameMode === 'single') {
+            obs.x -= 2.5 + level * 0.2;
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(obs.x, 0, obs.width, obs.top);
+            ctx.fillRect(obs.x, canvas.height - obs.bottom, obs.width, obs.bottom);
+
+            if (p1.x + p1.size > obs.x && p1.x - p1.size < obs.x + obs.width) {
+                if (p1.y - p1.size < obs.top || p1.y + p1.size > canvas.height - obs.bottom) return gameOver("Зіткнення!");
+            }
+            if (!obs.passed && obs.x < p1.x) { obs.passed = true; score++; if (score % 5 === 0) level++; }
+        } else {
+            obs.y += 2.5 + level * 0.2;
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(0, obs.y, obs.left, obs.height);
+            ctx.fillRect(canvas.width - obs.right, obs.y, obs.right, obs.height);
+
+            let checkCol = (p) => (p.y + p.size > obs.y && p.y - p.size < obs.y + obs.height && (p.x - p.size < obs.left || p.x + p.size > canvas.width - obs.right));
+            if (checkCol(p1) || checkCol(p2)) return gameOver("Зіткнення з астероїдом!");
+
+            if (!obs.passed && obs.y > p1.y) { obs.passed = true; score++; if (score % 5 === 0) level++; }
+        }
+        if (obs.x < -100 || obs.y > canvas.height + 100) obstacles.splice(i, 1);
+    }
+
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        let c = collectibles[i];
+        if (gameMode === 'single') c.x -= 2.5 + level * 0.2;
+        else c.y += 2.5 + level * 0.2;
+
+        ctx.beginPath();
+        ctx.fillStyle = (gameMode === 'single') ? '#f59e0b' : '#38bdf8';
+        ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        let checkC = (p) => Math.hypot(p.x - c.x, p.y - c.y) < p.size + c.size;
+        if (!c.collected && (checkC(p1) || (gameMode === 'space' && checkC(p2)))) {
+            c.collected = true;
+            let val = (gameMode === 'single') ? 1 : (1 * playerState.crystalMultiplier);
+            if (gameMode === 'single') playerState.acorns += val; else playerState.crystals += val;
+            collectedThisGame += val;
+            saveState();
+            collectibles.splice(i, 1);
+        }
+    }
+
+    drawPig(p1.x, p1.y, p1.color, playerState.nickname);
+    if (gameMode === 'space') drawPig(p2.x, p2.y, p2.color, friendNick);
+
+    document.getElementById('score-display').innerText = `Рівень: ${level} | Очки: ${score}`;
+    document.getElementById('currency-display').innerText = `🌰 ${playerState.acorns} | 💎 ${playerState.crystals}`;
+
+    requestAnimationFrame(gameLoop);
+}
+
+function drawPig(x, y, color, nick) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath(); ctx.arc(6, 2, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(nick, 0, -24);
+    ctx.restore();
+}
+
+function gameOver(reason) {
+    gameRunning = false;
+    document.getElementById('game-over-reason').innerText = reason;
+    document.getElementById('earned-curr').innerText = (gameMode === 'single' ? `+${collectedThisGame} 🌰` : `+${collectedThisGame} 💎`);
+    showPanel('game-over-panel');
+}
+
+function restartGame() { initGame(); }
+
+function skipLevel() {
+    if (playerState.acorns >= 30) {
+        playerState.acorns -= 30;
+        saveState();
+        level++;
+        restartGame();
+    } else { alert("Потрібно 30 🌰 для пропуску!"); }
+}
+</script>
+</body>
+</html>
