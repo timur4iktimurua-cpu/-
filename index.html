@@ -1,0 +1,418 @@
+```html
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Свинка На Ракетному Двигуні</title>
+    <!-- Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: none;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #38bdf8, #bae6fd);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white h-[100dvh] w-screen overflow-hidden flex flex-col justify-between select-none">
+
+    <!-- Top Header bar -->
+    <header class="bg-slate-800 border-b border-slate-700 p-2 sm:p-3 flex justify-between items-center z-20 shadow-lg shrink-0">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-pink-400 to-amber-400 bg-clip-text text-transparent">🐷 Свинка-Льотчиця</h1>
+            <div class="hidden sm:flex items-center bg-slate-700 px-3 py-1 rounded-full text-sm font-semibold border border-slate-600">
+                <span id="levelDisplay" class="text-sky-300">Рівень: 1</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="flex items-center bg-amber-500/20 border border-amber-500/40 px-2 sm:px-3 py-1 rounded-full">
+                <span class="text-amber-300 text-base sm:text-lg mr-1">🌰</span>
+                <span id="currencyDisplay" class="font-bold text-amber-300 text-base sm:text-lg">0</span>
+            </div>
+            <button id="shopBtn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-md transition active:scale-95 text-sm sm:text-base">
+                🛒 Магазин
+            </button>
+            <button id="skipBtn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl shadow-md transition active:scale-95 text-xs sm:text-sm flex items-center space-x-1">
+                <span>⏭️ Пропустити (<span id="skipCost">30</span>🌰)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Canvas Container -->
+    <main class="relative flex-1 w-full h-full overflow-hidden flex justify-center items-center bg-slate-950">
+        <canvas id="gameCanvas" class="w-full h-full cursor-pointer"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="startScreen" class="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 z-30 text-center">
+            <div class="max-w-md w-full bg-slate-800 border border-slate-700 p-6 sm:p-8 rounded-3xl shadow-2xl">
+                <div class="text-5xl sm:text-6xl mb-4 animate-bounce">🚀🐷</div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Політ Свинки</h2>
+                <p class="text-slate-300 text-sm mb-6 leading-relaxed">
+                    Тисни на екран, клікай мишкою або тисни Пробіл, щоб керувати реактивним ранцем! Уникай зелених перешкод, збирай жолуді та долети до фінішу!
+                </p>
+                <button id="startBtn" class="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white font-bold text-lg py-3.5 px-8 rounded-2xl shadow-lg transition active:scale-95">
+                    🎮 Грати Зараз
+                </button>
+            </div>
+        </div>
+
+        <!-- Shop Modal Overlay -->
+        <div id="shopModal" class="absolute inset-0 bg-slate-900/90 backdrop-blur-md hidden flex flex-col items-center justify-center p-3 sm:p-6 z-40">
+            <div class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/80">
+                    <h2 class="text-xl sm:text-2xl font-bold text-amber-300 flex items-center space-x-2">
+                        <span>🛒</span><span>Космічний Магазин Свинки</span>
+                    </h2>
+                    <button id="closeShopBtn" class="text-slate-400 hover:text-white text-xl font-bold px-3 py-1 rounded-xl bg-slate-700 hover:bg-slate-600 transition">✕</button>
+                </div>
+                <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+                    <!-- Upgrades Section -->
+                    <div>
+                        <h3 class="text-base sm:text-lg font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-1">⚡ Покращення</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="bg-slate-700/50 border border-slate-600 p-4 rounded-2xl flex flex-col justify-between">
+                                <div>
+                                    <div class="font-bold text-white text-base">🧲 Магніт Жолудів</div>
+                                    <div class="text-xs text-slate-300 mt-1">Притягує жолуді здалеку. Рівень: <span id="magLevel">0</span>/3</div>
+                                </div>
+                                <button id="buyMagnetBtn" class="mt-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-3 rounded-xl text-sm transition flex justify-between items-center">
+                                    <span>Покращити</span>
+                                    <span id="magCost">30 🌰</span>
+                                </button>
+                            </div>
+                            <div class="bg-slate-700/50 border border-slate-600 p-4 rounded-2xl flex flex-col justify-between">
+                                <div>
+                                    <div class="font-bold text-white text-base">🔥 Турбо Тяга</div>
+                                    <div class="text-xs text-slate-300 mt-1">Плавніший контроль ракети. Рівень: <span id="thrustLevel">0</span>/3</div>
+                                </div>
+                                <button id="buyThrustBtn" class="mt-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-3 rounded-xl text-sm transition flex justify-between items-center">
+                                    <span>Покращити</span>
+                                    <span id="thrustCost">40 🌰</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skins Section -->
+                    <div>
+                        <h3 class="text-base sm:text-lg font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-1">🎨 Скіни Свинки</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="skinsContainer">
+                            <!-- Skins injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Complete / Game Over Overlay -->
+        <div id="endModal" class="absolute inset-0 bg-slate-900/90 backdrop-blur-md hidden flex flex-col items-center justify-center p-4 sm:p-6 z-30 text-center">
+            <div class="max-w-md w-full bg-slate-800 border border-slate-700 p-6 sm:p-8 rounded-3xl shadow-2xl">
+                <div id="endEmoji" class="text-5xl sm:text-6xl mb-4">🎉</div>
+                <h2 id="endTitle" class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Рівень Пройдено!</h2>
+                <p id="endDesc" class="text-slate-300 text-sm mb-6">Ти чудово впорався з польотом!</p>
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 justify-center">
+                    <button id="nextLevelBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition active:scale-95">
+                        Наступний Рівень 🚀
+                    </button>
+                    <button id="restartLevelBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition active:scale-95">
+                        Спробувати Знову 🔄
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Instructions Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 p-2 text-center text-xs text-slate-400 z-20 shrink-0 flex flex-wrap justify-center gap-4">
+        <span>🖱️ Клік / Пробіл / Тач — летіти вгору</span>
+        <span>🌰 Збирай жолуді</span>
+        <span>⏭️ Пропускай складні рівні</span>
+    </footer>
+
+    <!-- Custom Alert Modal -->
+    <div id="alertModal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+            <div class="text-3xl mb-2">⚠️</div>
+            <p id="alertMessage" class="text-white text-base mb-5 font-medium">Повідомлення</p>
+            <button id="alertCloseBtn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition">Зрозуміло</button>
+        </div>
+    </div>
+
+    <!-- Complete Game Script -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // DOM Elements
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const currencyDisplay = document.getElementById('currencyDisplay');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const shopBtn = document.getElementById('shopBtn');
+        const shopModal = document.getElementById('shopModal');
+        const closeShopBtn = document.getElementById('closeShopBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const skipCostSpan = document.getElementById('skipCost');
+        const endModal = document.getElementById('endModal');
+        const endTitle = document.getElementById('endTitle');
+        const endDesc = document.getElementById('endDesc');
+        const endEmoji = document.getElementById('endEmoji');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const restartLevelBtn = document.getElementById('restartLevelBtn');
+        const skinsContainer = document.getElementById('skinsContainer');
+
+        const buyMagnetBtn = document.getElementById('buyMagnetBtn');
+        const buyThrustBtn = document.getElementById('buyThrustBtn');
+        const magLevelSpan = document.getElementById('magLevel');
+        const magCostSpan = document.getElementById('magCost');
+        const thrustLevelSpan = document.getElementById('thrustLevel');
+        const thrustCostSpan = document.getElementById('thrustCost');
+
+        const alertModal = document.getElementById('alertModal');
+        const alertMessage = document.getElementById('alertMessage');
+        const alertCloseBtn = document.getElementById('alertCloseBtn');
+
+        function showAlert(msg) {
+            alertMessage.textContent = msg;
+            alertModal.classList.remove('hidden');
+        }
+        alertCloseBtn.addEventListener('click', () => alertModal.classList.add('hidden'));
+
+        // Game State Variables
+        let gameRunning = false;
+        let gamePaused = false;
+        let scoreCurrency = parseInt(localStorage.getItem('pig_currency') || '50');
+        let currentLevel = parseInt(localStorage.getItem('pig_level') || '1');
+        let currentSkin = localStorage.getItem('pig_skin') || 'classic';
+        
+        let magnetLevel = parseInt(localStorage.getItem('pig_mag') || '0');
+        let thrustLevel = parseInt(localStorage.getItem('pig_thrust') || '0');
+
+        // Skins Database
+        const skins = [
+            { id: 'classic', name: 'Класична', color: '#ffb6c1', price: 0, unlocked: true },
+            { id: 'golden', name: 'Золота Свинка', color: '#ffd700', price: 100, unlocked: localStorage.getItem('skin_golden') === 'true' },
+            { id: 'cyber', name: 'Кібер-Свинка', color: '#00ffff', price: 250, unlocked: localStorage.getItem('skin_cyber') === 'true' },
+            { id: 'super', name: 'Супер-Герой', color: '#ef4444', price: 400, unlocked: localStorage.getItem('skin_super') === 'true' }
+        ];
+
+        // Resize Canvas to fit container cleanly
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Pig Player Object
+        let pig = {
+            x: 100,
+            y: canvas.height / 2,
+            radius: 22,
+            vy: 0,
+            gravity: 0.38,
+            lift: -7.2,
+            rotation: 0
+        };
+
+        // Level parameters
+        let obstacles = [];
+        let coins = [];
+        let particles = [];
+        let levelProgress = 0;
+        let levelGoalDistance = 3500; // pixels to finish level
+        let distanceTraveled = 0;
+        let spawnTimer = 0;
+
+        function getSkipCost() {
+            return 25 + (currentLevel - 1) * 15;
+        }
+
+        function saveGame() {
+            localStorage.setItem('pig_currency', scoreCurrency);
+            localStorage.setItem('pig_level', currentLevel);
+            localStorage.setItem('pig_skin', currentSkin);
+            localStorage.setItem('pig_mag', magnetLevel);
+            localStorage.setItem('pig_thrust', thrustLevel);
+            skins.forEach(s => {
+                if(s.unlocked) localStorage.setItem(`skin_${s.id}`, 'true');
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            currencyDisplay.textContent = scoreCurrency;
+            levelDisplay.textContent = `Рівень: ${currentLevel}`;
+            skipCostSpan.textContent = getSkipCost();
+            magLevelSpan.textContent = magnetLevel;
+            magCostSpan.textContent = ((magnetLevel + 1) * 30) + ' 🌰';
+            thrustLevelSpan.textContent = thrustLevel;
+            thrustCostSpan.textContent = ((thrustLevel + 1) * 40) + ' 🌰';
+            renderShopSkins();
+        }
+
+        // Controls
+        function triggerBoost() {
+            if (!gameRunning || gamePaused) return;
+            let boostPower = pig.lift - (thrustLevel * 0.35);
+            pig.vy = boostPower;
+            // Spawn jet exhaust particles
+            for(let i = 0; i < 3; i++) {
+                particles.push({
+                    x: pig.x - 14,
+                    y: pig.y + 8,
+                    vx: -2 - Math.random() * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    radius: Math.random() * 4 + 2,
+                    color: Math.random() > 0.5 ? '#f97316' : '#eab308',
+                    life: 18
+                });
+            }
+        }
+
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerBoost();
+            }
+        });
+        
+        canvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            triggerBoost();
+        });
+
+        function startLevel() {
+            pig.x = 100;
+            pig.y = canvas.height / 2;
+            pig.vy = 0;
+            obstacles = [];
+            coins = [];
+            particles = [];
+            distanceTraveled = 0;
+            spawnTimer = 0;
+            gameRunning = true;
+            gamePaused = false;
+            startScreen.classList.add('hidden');
+            endModal.classList.add('hidden');
+            shopModal.classList.add('hidden');
+        }
+
+        // Procedural generation of obstacles & coins
+        function generateObjects() {
+            spawnTimer++;
+            let interval = Math.max(65, 120 - currentLevel * 4);
+            if (spawnTimer >= interval) {
+                spawnTimer = 0;
+                let gapHeight = Math.max(130, 210 - currentLevel * 6);
+                let minHeight = 50;
+                let maxHeight = canvas.height - gapHeight - 100;
+                let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+                let obsSpeed = 3.2 + currentLevel * 0.25;
+
+                // Top barrier
+                obstacles.push({
+                    x: canvas.width + 60,
+                    y: 0,
+                    width: 55,
+                    height: topHeight,
+                    speed: obsSpeed,
+                    isTop: true
+                });
+
+                // Bottom barrier
+                obstacles.push({
+                    x: canvas.width + 60,
+                    y: topHeight + gapHeight,
+                    width: 55,
+                    height: canvas.height - (topHeight + gapHeight),
+                    speed: obsSpeed,
+                    isTop: false
+                });
+
+                // Spawn acorns inside gap
+                let coinCount = Math.floor(Math.random() * 3) + 1;
+                for(let i = 0; i < coinCount; i++) {
+                    coins.push({
+                        x: canvas.width + 85 + (i * 35),
+                        y: topHeight + gapHeight / 2 + (Math.random() - 0.5) * 50,
+                        radius: 12,
+                        speed: obsSpeed,
+                        collected: false
+                    });
+                }
+            }
+        }
+
+        function update() {
+            if (!gameRunning || gamePaused) return;
+
+            pig.vy += pig.gravity;
+            pig.y += pig.vy;
+            pig.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, pig.vy * 0.08));
+
+            let scrollSpeed = 3.2 + currentLevel * 0.25;
+            distanceTraveled += scrollSpeed;
+            levelProgress = Math.min(100, (distanceTraveled / levelGoalDistance) * 100);
+
+            // Ceiling & floor collision
+            if (pig.y - pig.radius < 0) {
+                pig.y = pig.radius;
+                pig.vy = 0;
+            }
+            if (pig.y + pig.radius > canvas.height - 35) {
+                gameOver(false);
+                return;
+            }
+
+            generateObjects();
+
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= obs.speed;
+
+                // AABB Collision check
+                if (
+                    pig.x + pig.radius > obs.x &&
+                    pig.x - pig.radius < obs.x + obs.width &&
+                    pig.y + pig.radius > obs.y &&
+                    pig.y - pig.radius < obs.y + obs.height
+                ) {
+                    gameOver(false);
+                    return;
+                }
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Update coins & Magnet logic
+            let magnetRadius = 50 + (magnetLevel * 45);
+            for (let i = coins.length - 1; i >= 0; i--) {
+                let c = coins[i];
+                c.x -= c.speed;
+
+                if (!c.collected && magnetLevel > 0) {
+                    let dx = pig.x - c.x;
+                    let dy = pig.y - c.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < magnetRadius) {
+                        c.x += dx * 0.18;
+                        c.y += dy * 0.18;
+                    }
+                }
+
+                let distX = pig.x - c.x;
+                le
